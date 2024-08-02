@@ -3,9 +3,8 @@ function _activate_cenv() {
     local cenv_name
     cenv_name=$(grep -m2 'name:' "$cenv_file" | tail -1 | awk '{print $2}')
 
-    # Don't reactivate an already activated virtual environment
     if [[ -z "$CONDA_PREFIX" || "*$cenv_name" != "$VIRTUAL_ENV" ]]; then
-        conda activate "$cenv_name"
+        conda activate "$cenv_name" 2>1 >/dev/null
     fi
 }
 
@@ -15,28 +14,28 @@ function _deactivate_cenv() {
     fi
 }
 
-# Gives the path to the nearest target file
 function _check_cenv_path()
 {
     local check_dir="$1"
-    local check_file="$2"
 
-    if [[ -d "${check_dir}/$check_file" ]]; then
-        printf "${check_dir}/$check_file"
+    if [[ -f "${check_dir}/environment.yaml" ]]; then
+        printf "${check_dir}/environment.yaml"
+        return
+    elif [[ -f "${check_dir}/environment.yml" ]]; then
+        printf "${check_dir}/environment.yml"
         return
     else
-        # Abort search at file system root or HOME directory (latter is a performance optimisation).
         if [[ "$check_dir" = "/" || "$check_dir" = "$HOME" ]]; then
             return
         fi
-        _check_cenv_path "$(dirname "$check_dir")" "$check_file"
+        _check_cenv_path "$(dirname "$check_dir")"
     fi
 }
 
 function _check_cenv()
 {
     local cenv_path
-    cenv_path="$(_check_cenv_path "$PWD" "environment.yaml")"
+    cenv_path="$(_check_cenv_path "$PWD")"
 
     if [[ -n "$cenv_path" ]]; then
         _activate_cenv "$cenv_path"
